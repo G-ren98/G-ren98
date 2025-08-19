@@ -5,15 +5,14 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 IS_WINDOWS = sys.platform.startswith("win")
 
-# Soft UI palette (light, smooth, rounded)
-BGCOLOR = QtGui.QColor(236, 240, 243)  # #ECF0F3
-SHADOW_DARK = QtGui.QColor(163, 177, 198, 160)
-SHADOW_LIGHT = QtGui.QColor(255, 255, 255, 220)
-TEXT_PRIMARY = QtGui.QColor(46, 52, 64)
-TEXT_MUTED = QtGui.QColor(90, 98, 110)
-ACCENT = QtGui.QColor(66, 133, 244)  # soft blue
-ACCENT_GREEN = QtGui.QColor(52, 168, 83)
-ACCENT_ORANGE = QtGui.QColor(251, 188, 5)
+"""Aurora Glass Lite theme: dark, neon accents, smooth and stable"""
+TEXT_PRIMARY = QtGui.QColor(235, 240, 245)
+TEXT_MUTED = QtGui.QColor(200, 208, 218)
+ACCENT = QtGui.QColor(0, 160, 255)
+ACCENT_GREEN = QtGui.QColor(0, 220, 170)
+ACCENT_ORANGE = QtGui.QColor(255, 160, 80)
+SHADOW_DARK = QtGui.QColor(0, 0, 0, 130)
+SHADOW_LIGHT = QtGui.QColor(255, 255, 255, 25)
 
 
 def soft_font(point_size: int, weight: QtGui.QFont.Weight = QtGui.QFont.Weight.Medium) -> QtGui.QFont:
@@ -59,8 +58,8 @@ class TitleBar(QtWidgets.QWidget):
         btn.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         btn.setFixedSize(36, 28)
         btn.setStyleSheet(
-            "QPushButton { border: none; background: transparent; color: #5A626E; }"
-            "QPushButton:hover { background: rgba(0,0,0,0.06); border-radius: 8px; }"
+            "QPushButton { border: none; background: transparent; color: rgba(235,240,245,0.9); }"
+            "QPushButton:hover { background: rgba(255,255,255,0.08); border-radius: 8px; }"
         )
         return btn
 
@@ -85,6 +84,51 @@ class TitleBar(QtWidgets.QWidget):
         super().mouseReleaseEvent(e)
 
 
+class AuroraBackground(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._hue = 200.0
+        self._timer = QtCore.QTimer(self)
+        self._timer.timeout.connect(self._tick)
+        self._timer.start(50)  # ~20 FPS for smoothness without heavy load
+        self.setAttribute(QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    def _tick(self):
+        self._hue = (self._hue + 0.3) % 360
+        self.update()
+
+    def _color(self, offset_deg: float, s: float, v: float, a: int = 255) -> QtGui.QColor:
+        hue = ((self._hue + offset_deg) % 360) / 360.0
+        c = QtGui.QColor()
+        c.setHsvF(hue, s, v, a / 255.0)
+        return c
+
+    def paintEvent(self, e: QtGui.QPaintEvent) -> None:
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        w, h = self.width(), self.height()
+
+        # Aurora diagonal gradient
+        g = QtGui.QLinearGradient(0.0, 0.0, float(w), float(h))
+        g.setColorAt(0.0, self._color(0, 0.55, 0.16))
+        g.setColorAt(0.5, self._color(60, 0.6, 0.12))
+        g.setColorAt(1.0, self._color(120, 0.65, 0.18))
+        p.fillRect(self.rect(), QtGui.QBrush(g))
+
+        # Soft blobs
+        for cx, cy, r, off in (
+            (w * 0.2, h * 0.25, w * 0.35, 0),
+            (w * 0.8, h * 0.2, w * 0.25, 120),
+            (w * 0.5, h * 0.75, w * 0.3, 240),
+        ):
+            rg = QtGui.QRadialGradient(QtCore.QPointF(cx, cy), r)
+            rg.setColorAt(0.0, self._color(off, 0.85, 0.9, 120))
+            rg.setColorAt(1.0, QtGui.QColor(0, 0, 0, 0))
+            p.setBrush(QtGui.QBrush(rg))
+            p.setPen(QtCore.Qt.PenStyle.NoPen)
+            p.drawEllipse(QtCore.QPointF(cx, cy), r, r)
+
+
 class SoftCard(QtWidgets.QWidget):
     def __init__(self, radius: int = 18, parent=None):
         super().__init__(parent)
@@ -103,24 +147,28 @@ class SoftCard(QtWidgets.QWidget):
     def paintEvent(self, e: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), BGCOLOR)
 
-        rect = self.rect().adjusted(10, 10, -10, -10)
+        rect = self.rect().adjusted(8, 8, -8, -8)
+        path = QtGui.QPainterPath()
+        path.addRoundedRect(QtCore.QRectF(rect), self.radius, self.radius)
 
-        # Soft raised shadows (very cheap to draw)
-        offset = 8
-        dark = QtGui.QColor(SHADOW_DARK)
-        light = QtGui.QColor(SHADOW_LIGHT)
-
+        # Subtle under shadow
+        shadow_rect = QtCore.QRectF(rect).translated(0, 6)
         painter.setPen(QtCore.Qt.PenStyle.NoPen)
-        painter.setBrush(dark)
-        painter.drawRoundedRect(QtCore.QRectF(rect).translated(+offset, +offset), self.radius, self.radius)
-        painter.setBrush(light)
-        painter.drawRoundedRect(QtCore.QRectF(rect).translated(-offset, -offset), self.radius, self.radius)
+        painter.setBrush(QtGui.QColor(0, 0, 0, 90))
+        painter.drawRoundedRect(shadow_rect, self.radius + 2, self.radius + 2)
 
-        # Main face
-        painter.setBrush(BGCOLOR)
-        painter.drawRoundedRect(QtCore.QRectF(rect), self.radius, self.radius)
+        # Glass fill
+        glass = QtGui.QLinearGradient(float(rect.left()), float(rect.top()), float(rect.left()), float(rect.bottom()))
+        glass.setColorAt(0.0, QtGui.QColor(255, 255, 255, 40))
+        glass.setColorAt(1.0, QtGui.QColor(255, 255, 255, 18))
+        painter.fillPath(path, QtGui.QBrush(glass))
+
+        # Border and inner highlight
+        border = QtGui.QPen(QtGui.QColor(255, 255, 255, 60))
+        border.setWidthF(1.2)
+        painter.setPen(border)
+        painter.drawPath(path)
 
 
 class StatCard(SoftCard):
@@ -132,11 +180,11 @@ class StatCard(SoftCard):
 
         title_lbl = QtWidgets.QLabel(title)
         title_lbl.setFont(soft_font(11, QtGui.QFont.Weight.DemiBold))
-        title_lbl.setStyleSheet("color: #5A626E;")
+        title_lbl.setStyleSheet("color: rgba(235,240,245,0.9);")
 
         value_lbl = QtWidgets.QLabel(value)
         value_lbl.setFont(soft_font(26, QtGui.QFont.Weight.Bold))
-        value_lbl.setStyleSheet("color: #2E3440;")
+        value_lbl.setStyleSheet("color: rgba(255,255,255,0.98);")
 
         progress = SoftProgress(accent)
 
@@ -155,13 +203,12 @@ class SoftProgress(QtWidgets.QWidget):
     def paintEvent(self, e: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), BGCOLOR)
         rect = self.rect().adjusted(2, 3, -2, -3)
         radius = rect.height() / 2
 
         # Track (neumorphic recess)
         painter.setPen(QtCore.Qt.PenStyle.NoPen)
-        painter.setBrush(QtGui.QColor(245, 248, 250))
+        painter.setBrush(QtGui.QColor(255, 255, 255, 28))
         painter.drawRoundedRect(rect, radius, radius)
 
         # Fill
@@ -169,7 +216,7 @@ class SoftProgress(QtWidgets.QWidget):
         fill_rect.setWidth(rect.width() * self._value)
         grad = QtGui.QLinearGradient(float(rect.left()), float(rect.top()), float(rect.right()), float(rect.top()))
         grad.setColorAt(0.0, QtGui.QColor(self.accent.red(), self.accent.green(), self.accent.blue(), 230))
-        grad.setColorAt(1.0, QtGui.QColor(self.accent.red(), self.accent.green(), self.accent.blue(), 170))
+        grad.setColorAt(1.0, QtGui.QColor(self.accent.red(), self.accent.green(), self.accent.blue(), 160))
         painter.setBrush(QtGui.QBrush(grad))
         painter.drawRoundedRect(fill_rect, radius, radius)
 
@@ -193,21 +240,19 @@ class MiniLine(QtWidgets.QWidget):
     def paintEvent(self, e: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
         painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        painter.fillRect(self.rect(), BGCOLOR)
         rect = self.rect().adjusted(24, 20, -24, -20)
 
         # soft frame
         painter.setPen(QtCore.Qt.PenStyle.NoPen)
-        painter.setBrush(SHADOW_LIGHT)
-        painter.drawRoundedRect(QtCore.QRectF(rect).translated(-6, -6), 16, 16)
-        painter.setBrush(SHADOW_DARK)
-        painter.drawRoundedRect(QtCore.QRectF(rect).translated(+6, +6), 16, 16)
-        painter.setBrush(BGCOLOR)
+        # Glass frame
+        painter.setBrush(QtGui.QColor(0, 0, 0, 80))
+        painter.drawRoundedRect(QtCore.QRectF(rect).translated(0, 5), 16, 16)
+        painter.setBrush(QtGui.QColor(255, 255, 255, 28))
         painter.drawRoundedRect(QtCore.QRectF(rect), 16, 16)
 
         # line
         pen = QtGui.QPen(self.color)
-        pen.setWidthF(2.0)
+        pen.setWidthF(2.2)
         painter.setPen(pen)
         step_x = rect.width() / (len(self.points) - 1)
         pts = []
@@ -225,16 +270,17 @@ class SoftButton(QtWidgets.QPushButton):
         self.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
         self.setFixedHeight(40)
         self.setStyleSheet(
-            "QPushButton { background: #ECF0F3; border: none; border-radius: 14px; color: #2E3440; font-weight: 600; }"
-            "QPushButton:hover { background: #E8EDF1; }"
-            "QPushButton:pressed { background: #E2E8ED; }"
+            "QPushButton { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22);"
+            " border-radius: 14px; color: rgba(255,255,255,0.95); font-weight: 600; }"
+            "QPushButton:hover { background: rgba(255,255,255,0.18); }"
+            "QPushButton:pressed { background: rgba(255,255,255,0.22); }"
         )
 
 
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Soft UI Dashboard")
+        self.setWindowTitle("Aurora Glass Dashboard")
         # Use standard window (avoid translucent for better stability on Windows)
         self.resize(1100, 700)
 
@@ -242,14 +288,13 @@ class MainWindow(QtWidgets.QWidget):
         outer.setContentsMargins(18, 18, 18, 18)
         outer.setSpacing(12)
 
-        # Background color (no heavy gradients)
-        pal = self.palette()
-        pal.setColor(QtGui.QPalette.ColorRole.Window, BGCOLOR)
-        self.setPalette(pal)
-        self.setAutoFillBackground(True)
+        # Layered background
+        self.setAutoFillBackground(False)
+        self._bg = AuroraBackground(self)
+        self._bg.lower()
 
         # Top bar
-        self.titlebar = TitleBar("Soft UI Dashboard")
+        self.titlebar = TitleBar("Aurora Glass Dashboard")
         outer.addWidget(self.titlebar)
 
         # Body
@@ -295,7 +340,7 @@ class MainWindow(QtWidgets.QWidget):
         chart_layout.setContentsMargins(20, 18, 20, 18)
         chart_title = QtWidgets.QLabel("Traffic")
         chart_title.setFont(soft_font(12, QtGui.QFont.Weight.DemiBold))
-        chart_title.setStyleSheet("color: #5A626E;")
+        chart_title.setStyleSheet("color: rgba(235,240,245,0.9);")
         chart_layout.addWidget(chart_title)
         chart_layout.addWidget(MiniLine(ACCENT), 1)
         mid.addWidget(chart_card, 2)
@@ -305,7 +350,7 @@ class MainWindow(QtWidgets.QWidget):
         actions_layout.setContentsMargins(20, 18, 20, 18)
         actions_title = QtWidgets.QLabel("Quick Actions")
         actions_title.setFont(soft_font(12, QtGui.QFont.Weight.DemiBold))
-        actions_title.setStyleSheet("color: #5A626E;")
+        actions_title.setStyleSheet("color: rgba(235,240,245,0.9);")
         actions_layout.addWidget(actions_title)
         actions_layout.addWidget(SoftButton("Generate Report"))
         actions_layout.addWidget(SoftButton("Export CSV"))
@@ -317,6 +362,12 @@ class MainWindow(QtWidgets.QWidget):
 
         body_layout.addWidget(main, 3)
         outer.addWidget(body, 1)
+
+    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
+        # Keep background widget stretched
+        if hasattr(self, "_bg") and self._bg is not None:
+            self._bg.setGeometry(self.rect())
+        super().resizeEvent(e)
 
 
 def main():
