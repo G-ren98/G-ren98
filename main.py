@@ -2,6 +2,7 @@ import sys
 import math
 import random
 from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import pyqtProperty
 
 
 def create_font_stack(point_size: int = 11, weight: int = QtGui.QFont.Weight.Medium.value):
@@ -115,7 +116,7 @@ class GradientBackground(QtWidgets.QWidget):
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(1280, 800)
 
-    @QtCore.pyqtProperty(float, notify=hueChanged)
+    @pyqtProperty(float, notify=hueChanged)
     def hue(self) -> float:
         return self._hue
 
@@ -473,7 +474,7 @@ class SideNav(QtWidgets.QWidget):
         self._indicator_y = value
         self.update()
 
-    indicatorY = QtCore.pyqtProperty(int, fget=getIndicatorY, fset=setIndicatorY)
+    indicatorY = pyqtProperty(int, fget=getIndicatorY, fset=setIndicatorY)
 
 
 class StatCard(GlassCard):
