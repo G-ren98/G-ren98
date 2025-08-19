@@ -356,7 +356,9 @@ class AreaChart(QtWidgets.QWidget):
         painter.setPen(grid_pen)
         for i in range(6):
             y = rect.top() + i * rect.height() / 5
-            painter.drawLine(rect.left(), y, rect.right(), y)
+            p1 = QtCore.QPointF(float(rect.left()), float(y))
+            p2 = QtCore.QPointF(float(rect.right()), float(y))
+            painter.drawLine(p1, p2)
 
         # Area and line
         path = QtGui.QPainterPath()
