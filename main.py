@@ -176,7 +176,9 @@ class GlassCard(QtWidgets.QWidget):
         border = QtGui.QColor(255, 255, 255, 55)
 
         path = QtGui.QPainterPath()
-        path.addRoundedRect(rect.adjusted(1, 1, -1, -1), radius, radius)
+        rectf = QtCore.QRectF(rect)
+        rectf = rectf.adjusted(1, 1, -1, -1)
+        path.addRoundedRect(rectf, radius, radius)
         painter.fillPath(path, bg)
 
         # Inner gradient shine
