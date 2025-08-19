@@ -231,7 +231,7 @@ class Sparkline(QtWidgets.QWidget):
         path.lineTo(rect.right(), rect.bottom())
         path.closeSubpath()
 
-        grad = QtGui.QLinearGradient(rect.topLeft(), rect.bottomLeft())
+        grad = QtGui.QLinearGradient(float(rect.left()), float(rect.top()), float(rect.left()), float(rect.bottom()))
         grad.setColorAt(0.0, QtGui.QColor(0, 255, 170, 140))
         grad.setColorAt(1.0, QtGui.QColor(0, 255, 170, 10))
         painter.fillPath(path, grad)
@@ -305,7 +305,6 @@ class ToggleSwitch(QtWidgets.QCheckBox):
         on_col = QtGui.QColor(0, 255, 170)
 
         # Track
-        track = QtGui.QLinearGradient(rect.topLeft(), rect.bottomLeft())
         mix = lambda a, b, p: QtGui.QColor(
             int(a.red() * (1 - p) + b.red() * p),
             int(a.green() * (1 - p) + b.green() * p),
@@ -372,7 +371,7 @@ class AreaChart(QtWidgets.QWidget):
         path.lineTo(rect.right(), rect.bottom())
         path.closeSubpath()
 
-        grad = QtGui.QLinearGradient(rect.topLeft(), rect.bottomLeft())
+        grad = QtGui.QLinearGradient(float(rect.left()), float(rect.top()), float(rect.left()), float(rect.bottom()))
         grad.setColorAt(0.0, QtGui.QColor(0, 140, 255, 110))
         grad.setColorAt(1.0, QtGui.QColor(0, 140, 255, 15))
         painter.fillPath(path, grad)
